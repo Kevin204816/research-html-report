@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{报告标题}}</title>
+<!-- Chart.js 双源加载：jsdelivr 失败（404/断网）时下一行自动换 unpkg，勿删 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>if(typeof Chart==='undefined'){document.write('<script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>');}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fafaf8; --ink:#0a0a0a;
+  --grey-1:#f0f0ee; --grey-2:#d4d4d2; --grey-3:#737373;
+  /* 主题色：在 body[data-theme] 上覆盖 --accent / --accent-bright / --accent-rgb */
+  --accent:#002FA7; --accent-rgb:0,47,167; --accent-bright:#5B7BFF;
+  --danger:#dc2626; --warn:#f59e0b; --ok:#16a34a;
+  --text-primary:#0a0a0a; --text-secondary:#525252; --text-helper:#737373;
+  --border-subtle:#e0e0e0; --border-strong:#a3a3a3;
+  --sans:"Inter","Helvetica Neue","Helvetica","Arial","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+  --sans-zh:"PingFang SC","Hiragino Sans GB","Source Han Sans SC","Noto Sans SC","Microsoft YaHei UI","Microsoft YaHei","微软雅黑",sans-serif;
+  --mono:"JetBrains Mono","IBM Plex Mono","SF Mono","Cascadia Code","Consolas","Courier New",ui-monospace,monospace;
+  --sp-3:8px; --sp-4:12px; --sp-5:16px; --sp-6:24px; --sp-7:32px; --sp-8:40px;
+  --sp-9:48px; --sp-10:64px;
+}
+/* 主题切换：只改 body 的 data-theme，不要手改组件颜色 */
+body[data-theme="fire"]{--accent:#c2410c;--accent-rgb:194,65,12;--accent-bright:#ea580c;}
+body[data-theme="green"]{--accent:#15803d;--accent-rgb:21,128,61;--accent-bright:#22a559;}
+body[data-theme="wine"]{--accent:#9f1239;--accent-rgb:159,18,57;--accent-bright:#e11d63;}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--sans),var(--sans-zh);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.6}
+.container{max-width:1200px;margin:0 auto;padding:60px 40px 80px}
+
+/* Hero */
+.hero{border-bottom:2px solid var(--ink);padding-bottom:var(--sp-8);margin-bottom:var(--sp-9)}
+.hero .kicker{font-family:var(--mono);font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:var(--sp-5);display:inline-flex;align-items:center;gap:.8em;font-weight:600}
+.hero .kicker::before{content:"";width:24px;height:1px;background:var(--accent)}
+.hero h1{font-weight:200;font-size:clamp(34px,5vw,66px);line-height:1.05;letter-spacing:-.025em;margin-bottom:var(--sp-6)}
+.hero h1 em{font-style:italic;font-weight:300}
+.hero .subtitle{font-size:clamp(15px,1.1vw,18px);color:var(--text-secondary);max-width:70ch;line-height:1.75}
+.hero .subtitle strong{color:var(--ink);font-weight:600}
+.hero .meta-row{display:flex;gap:var(--sp-8);margin-top:var(--sp-7);padding-top:var(--sp-5);border-top:1px solid var(--border-subtle);flex-wrap:wrap}
+.hero .meta-item{display:flex;flex-direction:column;gap:4px}
+.hero .meta-item .label{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-helper)}
+.hero .meta-item .value{font-size:15px;font-weight:500}
+
+/* Sections */
+section{margin-bottom:var(--sp-10)}
+.section-head{display:flex;align-items:baseline;gap:var(--sp-5);margin-bottom:var(--sp-7);padding-bottom:var(--sp-4);border-bottom:1px solid var(--grey-2)}
+.section-num{font-family:var(--mono);font-size:14px;letter-spacing:.2em;color:var(--accent);font-weight:600}
+.section-title{font-weight:300;font-size:clamp(24px,2.6vw,36px);letter-spacing:-.02em;line-height:1.1}
+.section-sub{font-size:14px;color:var(--text-helper);margin-left:auto}
+.lead{font-size:16px;line-height:1.8;max-width:75ch;margin-bottom:var(--sp-7)}
+.lead strong{font-weight:600}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:2px solid var(--ink);border-bottom:1px solid var(--grey-2)}
+.kpi-row.cols-5{grid-template-columns:repeat(5,1fr)}
+.kpi-row.cols-6{grid-template-columns:repeat(6,1fr)}
+.kpi-cell{padding:var(--sp-6) var(--sp-5);border-right:1px solid var(--border-subtle)}
+.kpi-cell:last-child{border-right:none}
+.kpi-cell .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-helper);margin-bottom:var(--sp-4)}
+.kpi-cell .nb{font-weight:200;font-size:clamp(26px,2.8vw,44px);line-height:1;letter-spacing:-.025em;font-feature-settings:"tnum"}
+.kpi-cell .nb .unit{font-size:.36em;font-weight:300;opacity:.6;margin-left:.1em;vertical-align:.42em}
+.kpi-cell .nb.neg{color:var(--danger)}
+.kpi-cell .note{font-size:12px;color:var(--text-secondary);margin-top:var(--sp-4);line-height:1.5}
+
+/* Grids & cards */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-7)}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-6)}
+.card{background:var(--grey-1);padding:var(--sp-6);border-radius:2px}
+.card.dark{background:var(--ink);color:var(--paper)}
+.card.accent-edge{border-left:3px solid var(--accent)}
+.card .card-label{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:var(--sp-4);font-weight:600}
+.card.dark .card-label{color:var(--accent-bright)}
+.card h3{font-weight:500;font-size:19px;line-height:1.3;margin-bottom:var(--sp-4);letter-spacing:-.01em}
+.card p,.card li{font-size:13.5px;color:var(--text-secondary);line-height:1.7}
+.card.dark p,.card.dark li{color:rgba(250,250,248,.82)}
+.card strong{color:var(--text-primary)}
+.card.dark strong{color:#fff}
+.card ul{list-style:none;padding:0}
+.card ul li{position:relative;padding-left:18px;margin-bottom:8px}
+.card ul li::before{content:"";position:absolute;left:0;top:10px;width:8px;height:1px;background:var(--accent)}
+.card.dark ul li::before{background:var(--accent-bright)}
+
+/* Tables */
+.biz-table,.case-table{width:100%;border-collapse:collapse}
+.biz-table th,.case-table th{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-helper);text-align:left;padding:14px 16px;border-bottom:2px solid var(--ink);font-weight:500}
+.case-table th{font-size:11px}
+.biz-table td,.case-table td{padding:16px;border-bottom:1px solid var(--border-subtle);font-size:13.5px;line-height:1.6;vertical-align:top}
+.case-table td{font-size:13px;padding:14px}
+.biz-table td.num{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600;width:36px}
+.biz-table td.name{font-weight:600;font-size:14px;width:180px}
+.biz-table td.desc,.case-table td{color:var(--text-secondary)}
+.biz-table tr:hover td{background:var(--grey-1)}
+.case-table td.who{font-weight:600;color:var(--text-primary);min-width:150px}
+.case-table td.who .sub{font-family:var(--mono);font-size:11px;color:var(--text-helper);font-weight:400;margin-top:2px}
+.case-table td.num-cell{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600;white-space:nowrap}
+
+/* Charts */
+.chart-wrap{background:var(--paper);padding:var(--sp-5);border:1px solid var(--border-subtle);border-radius:2px}
+.chart-wrap h4{font-weight:500;font-size:15px;margin-bottom:var(--sp-2)}
+.chart-wrap .chart-note{font-size:12px;color:var(--text-helper);margin-bottom:var(--sp-4)}
+.chart-container{position:relative;height:300px}
+.chart-container.tall{height:420px}
+
+/* Pain grid */
+.pain-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border-subtle);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.pain-cell{background:var(--paper);padding:22px 18px}
+.pain-cell .pnum{font-family:var(--mono);font-size:11px;color:var(--danger);font-weight:600;letter-spacing:.14em;margin-bottom:10px}
+.pain-cell h4{font-size:14.5px;font-weight:600;line-height:1.4;margin-bottom:10px}
+.pain-cell p{font-size:12.5px;color:var(--text-secondary);line-height:1.65}
+.pain-cell .hl{color:var(--danger);font-weight:600}
+
+/* Opportunity groups */
+.opp-group{margin-bottom:var(--sp-7)}
+.opp-group-head{display:flex;align-items:center;gap:14px;margin-bottom:var(--sp-5)}
+.opp-group-head .gletter{width:38px;height:38px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:600;font-size:16px}
+.opp-group-head.g1 .gletter{background:var(--danger)}
+.opp-group-head.g2 .gletter{background:var(--accent)}
+.opp-group-head.g3 .gletter{background:var(--ok)}
+.opp-group-head h3{font-size:19px;font-weight:500}
+.opp-group-head .gsub{font-size:13px;color:var(--text-helper);margin-left:auto}
+.opp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-5)}
+.opp-card{border:1px solid var(--border-subtle);padding:var(--sp-6);background:var(--paper)}
+.opp-card.span2{grid-column:1/-1}
+.opp-card.reco{border:1.5px solid var(--accent);background:rgba(var(--accent-rgb),.03)}
+.opp-card .opp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.opp-card h4{font-size:16px;font-weight:600;line-height:1.4}
+.opp-card .reco-badge{font-family:var(--mono);font-size:10px;letter-spacing:.1em;background:var(--accent);color:#fff;padding:3px 8px;white-space:nowrap;font-weight:600}
+.opp-card p{font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:10px}
+.opp-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-helper);padding-top:10px;border-top:1px dashed var(--border-subtle)}
+.opp-meta b{color:var(--text-primary);font-weight:600}
+.diff-dots{display:inline-flex;gap:3px;vertical-align:middle}
+.diff-dots i{width:7px;height:7px;border-radius:50%;background:var(--grey-2);display:inline-block}
+.diff-dots i.on{background:var(--accent)}
+
+/* Cut timeline */
+.cut-timeline{display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.cut-cell{padding:var(--sp-7) var(--sp-6);border-right:1px solid var(--border-subtle);background:var(--paper)}
+.cut-cell:last-child{border-right:none}
+.cut-cell .when{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--text-helper);text-transform:uppercase;margin-bottom:6px}
+.cut-cell .knife{font-size:22px;font-weight:300;letter-spacing:-.01em;margin-bottom:4px}
+.cut-cell .knife .num{font-family:var(--mono);color:var(--accent);font-weight:600;margin-right:8px}
+.cut-cell .goal{font-size:13px;color:var(--accent);font-weight:600;margin-bottom:16px}
+.cut-cell ul{list-style:none}
+.cut-cell li{font-size:13px;color:var(--text-secondary);line-height:1.65;padding-left:16px;position:relative;margin-bottom:9px}
+.cut-cell li::before{content:"→";position:absolute;left:0;top:0;color:var(--accent);font-size:11px}
+.cut-cell .why{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border-subtle);font-size:12px;color:var(--text-helper);line-height:1.6}
+
+/* Policy */
+.policy-card{background:var(--paper);border:1px solid var(--border-subtle);border-top:3px solid var(--accent);padding:var(--sp-6)}
+.policy-card .pdoc{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.06em;margin-bottom:8px;font-weight:600}
+.policy-card h4{font-size:15px;font-weight:600;margin-bottom:10px;line-height:1.4}
+.policy-card p{font-size:12.5px;color:var(--text-secondary);line-height:1.7}
+.policy-card .money{font-family:var(--mono);color:var(--danger);font-weight:600}
+
+/* Script / talk */
+.script-box{background:var(--ink);color:var(--paper);padding:var(--sp-8);border-left:4px solid var(--accent-bright);margin-bottom:var(--sp-7)}
+.script-box .slabel{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--accent-bright);font-weight:600;margin-bottom:var(--sp-5);text-transform:uppercase}
+.script-box blockquote{font-size:clamp(17px,1.5vw,22px);font-weight:300;line-height:1.6;letter-spacing:-.01em}
+.script-box blockquote strong{color:var(--accent-bright);font-weight:500}
+.script-box .alt{margin-top:var(--sp-5);padding-top:var(--sp-5);border-top:1px solid rgba(255,255,255,.15);font-size:14px;color:rgba(250,255,255,.75);line-height:1.7}
+.script-box .alt b{color:rgba(255,255,255,.95)}
+.talk-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border-subtle);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.talk-step{background:var(--paper);padding:22px 20px}
+.talk-step .torder{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.14em;margin-bottom:10px}
+.talk-step h4{font-size:14.5px;font-weight:600;margin-bottom:8px}
+.talk-step p{font-size:12.5px;color:var(--text-secondary);line-height:1.65}
+
+/* Insight box（全篇 ≤2 处） */
+.insight-box{background:var(--ink);color:var(--paper);padding:var(--sp-7);border-left:4px solid var(--accent-bright);margin:var(--sp-7) 0}
+.insight-box .label{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--accent-bright);font-weight:600;margin-bottom:var(--sp-4);text-transform:uppercase}
+.insight-box h3{font-weight:300;font-size:clamp(19px,1.8vw,26px);line-height:1.4;margin-bottom:var(--sp-4);letter-spacing:-.015em}
+.insight-box h3 strong{color:var(--accent-bright);font-weight:500}
+.insight-box p{font-size:14px;line-height:1.75;color:rgba(250,250,248,.8)}
+
+/* Chips */
+.chip-row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12.5px;padding:6px 14px;border:1px solid var(--border-strong);color:var(--text-secondary);background:var(--paper);border-radius:999px}
+
+/* Footer */
+footer{border-top:2px solid var(--ink);padding-top:var(--sp-6);margin-top:var(--sp-10)}
+footer .foot-block{display:flex;flex-direction:column;gap:6px;max-width:760px}
+footer .foot-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-helper)}
+footer .foot-value{font-size:12.5px;color:var(--text-secondary);line-height:1.7}
+.disclaimer{margin-top:var(--sp-6);padding-top:var(--sp-5);border-top:1px solid var(--grey-2);font-size:12px;color:var(--text-helper);line-height:1.7}
+
+/* 响应式 */
+@media (max-width:900px){
+  .container{padding:40px 20px 60px}
+  .kpi-row,.kpi-row.cols-5,.kpi-row.cols-6{grid-template-columns:repeat(2,1fr)}
+  .kpi-cell:nth-child(odd){border-right:none}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .pain-grid{grid-template-columns:1fr}
+  .opp-grid{grid-template-columns:1fr}
+  .cut-timeline{grid-template-columns:1fr}
+  .cut-cell{border-right:none;border-bottom:1px solid var(--border-subtle)}
+  .talk-steps{grid-template-columns:1fr}
+}
+
+/* 打印 / 导出PDF：深色块反色，避免糊成一片 */
+@media print{
+  .container{max-width:none;padding:0}
+  .card.dark,.insight-box,.script-box{background:#fff;color:#0a0a0a;border:1px solid #0a0a0a;border-left:3px solid var(--accent)}
+  .card.dark p,.card.dark li,.insight-box p,.script-box blockquote,.script-box .alt{color:#333}
+  .card.dark .card-label,.insight-box .label,.script-box .slabel{color:var(--accent)}
+  .insight-box h3 strong,.script-box blockquote strong{color:var(--accent)}
+  .card.dark strong,.script-box .alt b{color:#000}
+  .script-box .alt{border-top-color:#ccc}
+  section{page-break-inside:avoid}
+  .chart-wrap{border:1px solid #999}
+}
+</style>
+</head>
+<!-- data-theme: default(国际蓝) | fire(消防橙) | green(墨绿) | wine(酒红) -->
+<body data-theme="default">
+<div class="container">
+
+  <!-- ========== HERO（必选） ========== -->
+  <div class="hero">
+    <div class="kicker">{{英文小标签，如 Company Research · 公司调研}}</div>
+    <h1>{{主标题第一行}}<br/><em>{{第二行斜体强调}}</em></h1>
+    <p class="subtitle">{{一句话定位与本报告回答的核心问题，<strong>关键词加粗</strong>。}}</p>
+    <div class="meta-row">
+      <div class="meta-item"><span class="label">字段1</span><span class="value">{{值}}</span></div>
+      <div class="meta-item"><span class="label">字段2</span><span class="value">{{值}}</span></div>
+      <div class="meta-item"><span class="label">字段3</span><span class="value">{{值}}</span></div>
+      <div class="meta-item"><span class="label">日期</span><span class="value">{{YYYY-MM-DD}}</span></div>
+    </div>
+  </div>
+
+  <!-- ========== 01 一句话定位 + KPI（必选） ========== -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2 class="section-title">{{一句话定位与关键数字}}</h2>
+    </div>
+    <p class="lead">{{2-4 句说清主体是什么、在什么赛道、什么模式。<strong>判断性结论放这里。</strong>}}</p>
+    <div class="kpi-row"><!-- 需要5/6格时加 class cols-5 / cols-6 -->
+      <div class="kpi-cell"><div class="lbl">{{指标名}}</div><div class="nb">{{数字}}<small class="unit">{{单位}}</small></div><div class="note">{{注释与口径}}</div></div>
+      <div class="kpi-cell"><div class="lbl">{{指标名}}</div><div class="nb">{{数字}}<small class="unit">{{单位}}</small></div><div class="note">{{注释}}</div></div>
+      <div class="kpi-cell"><div class="lbl">{{下滑指标}}</div><div class="nb neg">{{负向数字}}<small class="unit">{{单位}}</small></div><div class="note">{{注释}}</div></div>
+      <div class="kpi-cell"><div class="lbl">{{指标名}}</div><div class="nb">{{数字}}<small class="unit">{{单位}}</small></div><div class="note">{{注释}}</div></div>
+    </div>
+    <div class="insight-box">
+      <div class="label">读表结论 · {{这组数字说明什么}}</div>
+      <h3>{{把最重要的判断写成一句有锋芒的话，<strong>关键结论用 strong</strong>。}}</h3>
+      <p>{{补充这对读者意味着什么、决定了什么后续动作。}}</p>
+    </div>
+  </section>
+
+  <!-- ========== 02 业务/现状拆解（可选，公司调研常用） ========== -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2 class="section-title">{{业务版图 / 现状结构}}</h2>
+      <span class="section-sub">{{来源标注，如 官网 + 年报}}</span>
+    </div>
+    <div class="grid-3" style="margin-bottom:var(--sp-7)">
+      <div class="card"><div class="card-label">板块 01</div><h3>{{名称}}</h3><p>{{描述，<strong>关键判断加粗</strong>。}}</p></div>
+      <div class="card"><div class="card-label">板块 02</div><h3>{{名称}}</h3><p>{{描述}}</p></div>
+      <div class="card"><div class="card-label">板块 03</div><h3>{{名称}}</h3><p>{{描述}}</p></div>
+    </div>
+    <table class="biz-table" style="margin-bottom:var(--sp-7)">
+      <thead><tr><th></th><th>名称</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="num">01</td><td class="name">{{产品/业务}}</td><td class="desc">{{是什么、什么角色、与主题的关系}}</td></tr>
+        <tr><td class="num">02</td><td class="name">{{产品/业务}}</td><td class="desc">{{说明}}</td></tr>
+      </tbody>
+    </table>
+    <div class="grid-2">
+      <div class="chart-wrap">
+        <h4>{{图题就是结论句}}</h4>
+        <div class="chart-note">{{口径说明}}</div>
+        <div class="chart-container"><canvas id="chart1"></canvas></div>
+      </div>
+      <div class="card dark">
+        <div class="card-label">{{深色卡标签}}</div>
+        <h3>{{要点合集标题}}</h3>
+        <ul>
+          <li><strong>{{要点一}}</strong>——{{说明}}</li>
+          <li><strong>{{要点二}}</strong>——{{说明}}</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 03 痛点/问题（可选） ========== -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2 class="section-title">{{五个痛点 / 关键问题}}</h2>
+    </div>
+    <div class="pain-grid"><!-- 不足5格时改 grid-template-columns -->
+      <div class="pain-cell"><div class="pnum">POINT 01</div><h4>{{判断式短标题}}</h4><p>{{证据描述，<span class="hl">关键数字标红</span>。}}</p></div>
+      <div class="pain-cell"><div class="pnum">POINT 02</div><h4>{{短标题}}</h4><p>{{证据}}</p></div>
+      <div class="pain-cell"><div class="pnum">POINT 03</div><h4>{{短标题}}</h4><p>{{证据}}</p></div>
+      <div class="pain-cell"><div class="pnum">POINT 04</div><h4>{{短标题}}</h4><p>{{证据}}</p></div>
+      <div class="pain-cell"><div class="pnum">POINT 05</div><h4>{{短标题}}</h4><p>{{证据}}</p></div>
+    </div>
+  </section>
+
+  <!-- ========== 04 机会/方案/发现（可选） ========== -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2 class="section-title">{{机会 / 方案地图}}</h2>
+      <span class="section-sub">{{分组逻辑说明}}</span>
+    </div>
+
+    <div class="opp-group">
+      <div class="opp-group-head g1"><div class="gletter">A</div><h3>{{分组名}}</h3><span class="gsub">{{一句话注解}}</span></div>
+      <div class="opp-grid">
+        <div class="opp-card reco">
+          <div class="opp-top"><h4>{{重点项名称}}</h4><span class="reco-badge">★ {{首推}}</span></div>
+          <p>{{场景、做法、价值。}}</p>
+          <div class="opp-meta">
+            <span>难度：<span class="diff-dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span> <b>中</b></span>
+            <span>周期：<b>{{如 3-6 个月}}</b></span>
+          </div>
+        </div>
+        <div class="opp-card">
+          <div class="opp-top"><h4>{{普通项名称}}</h4></div>
+          <p>{{描述}}</p>
+          <div class="opp-meta"><span>难度：<b>{{低/中/高}}</b></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opp-group">
+      <div class="opp-group-head g2"><div class="gletter">B</div><h3>{{分组名}}</h3><span class="gsub">{{注解}}</span></div>
+      <div class="opp-grid">
+        <div class="opp-card"><div class="opp-top"><h4>{{项}}</h4></div><p>{{描述}}</p><div class="opp-meta"><span>难度：<b>{{}}</b></span></div></div>
+        <div class="opp-card"><div class="opp-top"><h4>{{项}}</h4></div><p>{{描述}}</p><div class="opp-meta"><span>难度：<b>{{}}</b></span></div></div>
+      </div>
+    </div>
+
+    <div class="chart-wrap" style="margin-top:var(--sp-7)">
+      <h4>{{优先级矩阵：价值 × 难度}}</h4>
+      <div class="chart-note">{{读图说明：右上/右下分别代表什么，气泡大小含义}}</div>
+      <div class="chart-container tall"><canvas id="matrixChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ========== 05 路径/节奏（可选） ========== -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2 class="section-title">{{三步路径 / 行动节奏}}</h2>
+    </div>
+    <div class="cut-timeline">
+      <div class="cut-cell">
+        <div class="when">{{时间，如 第一步 · 0-6 个月}}</div>
+        <div class="knife"><span class="num">01</span>{{阶段名}}</div>
+        <div class="goal">{{本阶段目标}}</div>
+        <ul><li>{{动作一}}</li><li>{{动作二}}</li></ul>
+        <div class="why">{{为什么是这个顺序}}</div>
+      </div>
+      <div class="cut-cell">
+        <div class="when">{{第二步 · 时间}}</div>
+        <div class="knife"><span class="num">02</span>{{阶段名}}</div>
+        <div class="goal">{{目标}}</div>
+        <ul><li>{{动作}}</li></ul>
+        <div class="why">{{理由}}</div>
+      </div>
+      <div class="cut-cell">
+        <div class="when">{{第三步 · 时间}}</div>
+        <div class="knife"><span class="num">03</span>{{阶段名}}</div>
+        <div class="goal">{{目标}}</div>
+        <ul><li>{{动作}}</li></ul>
+        <div class="why">{{理由}}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 06 证据：案例 + 政策（可选） ========== -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <h2 class="section-title">{{证据弹药：同行在做 / 政策在推}}</h2>
+    </div>
+    <table class="case-table" style="margin-bottom:var(--sp-8)">
+      <thead><tr><th>主体</th><th>做了什么</th><th>硬数据</th><th>对本主题的意味</th></tr></thead>
+      <tbody>
+        <tr><td class="who">{{名称}}<span class="sub">{{副标}}</span></td><td>{{事实}}</td><td class="num-cell">{{数字结果}}</td><td>{{so what}}</td></tr>
+        <tr><td class="who">{{名称}}<span class="sub">{{副标}}</span></td><td>{{事实}}</td><td class="num-cell">{{数字}}</td><td>{{意味}}</td></tr>
+      </tbody>
+    </table>
+    <div class="grid-3">
+      <div class="policy-card"><div class="pdoc">{{文号/来源}}</div><h4>{{政策名}}</h4><p>{{关键条款，<span class="money">金额/比例用 money 样式</span>。}}</p></div>
+      <div class="policy-card"><div class="pdoc">{{文号}}</div><h4>{{政策名}}</h4><p>{{条款}}</p></div>
+      <div class="policy-card"><div class="pdoc">{{文号}}</div><h4>{{政策名}}</h4><p>{{条款}}</p></div>
+    </div>
+  </section>
+
+  <!-- ========== 07 行动建议/话术（沟通简报类可选） ========== -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">07</span>
+      <h2 class="section-title">{{结论 / 建议 / 沟通话术}}</h2>
+    </div>
+    <div class="script-box">
+      <div class="slabel">{{核心主张}}</div>
+      <blockquote>"{{可以直接说出口的原话，<strong>关键词用 strong</strong>。}}"</blockquote>
+      <div class="alt"><b>{{短版备选：}}</b>{{一句话版本}}</div>
+    </div>
+    <div class="talk-steps">
+      <div class="talk-step"><div class="torder">STEP 1 · {{两字}}</div><h4>{{标题}}</h4><p>{{怎么做}}</p></div>
+      <div class="talk-step"><div class="torder">STEP 2 · {{两字}}</div><h4>{{标题}}</h4><p>{{怎么做}}</p></div>
+      <div class="talk-step"><div class="torder">STEP 3 · {{两字}}</div><h4>{{标题}}</h4><p>{{怎么做}}</p></div>
+      <div class="talk-step"><div class="torder">STEP 4 · {{两字}}</div><h4>{{标题}}</h4><p>{{怎么做}}</p></div>
+    </div>
+    <div class="grid-2" style="margin-top:var(--sp-7)">
+      <div class="card accent-edge"><div class="card-label">DO · 该做的</div><ul><li>{{要点}}</li><li>{{要点}}</li></ul></div>
+      <div class="card"><div class="card-label">DON'T · 要避开的</div><ul><li>{{要点}}</li><li>{{要点}}</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER（必选） ========== -->
+  <footer>
+    <div class="foot-block">
+      <span class="foot-label">信息来源</span>
+      <span class="foot-value">{{具体到文件名/网站名/公告日期，不要只写"公开资料"。}}</span>
+    </div>
+    <div class="disclaimer">
+      {{可信度说明：哪些是已核实事实、哪些是对方宣传口径、哪些未交叉验证；数据截止日期；本材料用途限制。}}<br/>
+      制作日期：{{YYYY-MM-DD}}
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/* ===== 图表区：以下两个是示例，按报告需要增删；不用的图连同 canvas 与代码一起删 ===== */
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.font.family = "'Inter','PingFang SC','Microsoft YaHei',sans-serif";
+  Chart.defaults.color = '#737373';
+  var ACCENT = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#002FA7';
+
+  // 示例1：正负值柱图（财务/趋势）。负值自动红
+  var c1 = document.getElementById('chart1');
+  if (c1) new Chart(c1, {
+    type: 'bar',
+    data: {
+      labels: ['{{期1}}', '{{期2}}'],
+      datasets: [
+        { label: '{{系列1}}', data: [100, 120], backgroundColor: ACCENT, barPercentage: 0.55 },
+        { label: '{{系列2（可负）}}', data: [20, -30], backgroundColor: function(ctx){ return ctx.raw < 0 ? '#dc2626' : '#16a34a'; }, barPercentage: 0.55 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12 } },
+        tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + c.raw + ' {{单位}}'; } } }
+      },
+      scales: {
+        y: { grid: { color: '#eee' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 13 } } }
+      }
+    }
+  });
+
+  // 示例2：价值×难度气泡矩阵（标签写法已修：直接用整名，勿 split 拼接）
+  var c2 = document.getElementById('matrixChart');
+  if (c2) new Chart(c2, {
+    type: 'bubble',
+    data: { datasets: [
+      { label: '{{A组}}', backgroundColor: 'rgba(220,38,38,.72)', borderColor: '#dc2626',
+        data: [{ x: 2.2, y: 4.6, r: 20, name: '{{项A1}}' }, { x: 3.4, y: 3.6, r: 12, name: '{{项A2}}' }] },
+      { label: '{{B组}}', backgroundColor: 'rgba(0,47,167,.7)', borderColor: ACCENT,
+        data: [{ x: 3, y: 4.8, r: 22, name: '{{项B1}}' }] },
+      { label: '{{C组}}', backgroundColor: 'rgba(22,163,74,.72)', borderColor: '#16a34a',
+        data: [{ x: 1.2, y: 3.7, r: 20, name: '{{项C1}}' }] }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, padding: 18 } },
+        tooltip: { callbacks: { label: function(c){ return c.raw.name + '（难度' + c.raw.x + ' / 价值' + c.raw.y + '）'; } } }
+      },
+      scales: {
+        x: { min: 0.5, max: 5, title: { display: true, text: '落地难度 →', font: { size: 13 }, color: '#525252' },
+             ticks: { callback: function(){ return ''; } }, grid: { color: '#f0f0ee' } },
+        y: { min: 2, max: 5.2, title: { display: true, text: '业务价值 →', font: { size: 13 }, color: '#525252' },
+             ticks: { callback: function(){ return ''; } }, grid: { color: '#f0f0ee' } }
+      }
+    },
+    plugins: [{
+      id: 'bubbleLabels',
+      afterDatasetsDraw: function(chart) {
+        var ctx = chart.ctx;
+        ctx.save();
+        ctx.font = '600 10.5px "PingFang SC","Microsoft YaHei",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#333';
+        chart.data.datasets.forEach(function(ds, di) {
+          var meta = chart.getDatasetMeta(di);
+          ds.data.forEach(function(d, ii) {
+            var el = meta.data[ii];
+            // 注意：直接用 d.name 整名，不要 split(' ')[0]+split(' ')[1]，名字没空格时会打出 undefined
+            if (el) ctx.fillText(d.name, el.x, el.y - el.options.radius - 4);
+          });
+        });
+        ctx.restore();
+      }
+    }]
+  });
+}
+</script>
+</body>
+</html>
